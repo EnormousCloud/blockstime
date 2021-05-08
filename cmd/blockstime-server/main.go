@@ -2,7 +2,9 @@ package main
 
 import (
 	"blockstime/internal/config"
+	"blockstime/internal/indexer"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -13,7 +15,24 @@ func main() {
 	var cfg config.Config
 	readFile(&cfg)
 	readEnv(&cfg)
-	fmt.Printf("%+v", cfg)
+
+	// fmt.Printf("%+v", cfg)
+	if err := cfg.Validate(); err != nil {
+		log.Fatal(err)
+	}
+	// indexing - save blocks into databases
+	for _, network := range cfg.Networks {
+		if network.Disabled {
+			continue
+		}
+		ind, err := indexer.New(&network)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := ind.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func processError(err error) {

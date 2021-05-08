@@ -32,4 +32,5 @@ type INetworkEngine interface {
 	IsSyncing() (bool, error)
 	GetHeadBlockNumber() (int64, error)
 	GetBlockTime(blockNumber int64) (int64, error)
+	String() string
 }

@@ -3,6 +3,7 @@ package timeslice
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -19,6 +20,9 @@ func Load(filename string) ([]int64, error) {
 	}
 
 	var size int64 = stats.Size()
+	if size == 0 {
+		return nil, errors.New("empty storage")
+	}
 	if size%8 != 0 {
 		return nil, fmt.Errorf("invalid file size, x8 expected, got %d", size)
 	}

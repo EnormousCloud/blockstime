@@ -4,6 +4,7 @@ import (
 	"blockstime/internal/engines"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -19,12 +20,19 @@ func NewClient(node *engines.NodeRPC) (engines.INetworkEngine, error) {
 	res := &rpcclient{
 		Node: node,
 	}
+	if isSyncing, _ := res.IsSyncing(); isSyncing {
+		return nil, errors.New("Node is syncing")
+	}
 	if lastBlock, err := res.GetHeadBlockNumber(); err != nil {
 		return nil, err
 	} else {
 		res.MaxBlock = lastBlock
 	}
 	return res, nil
+}
+
+func (c *rpcclient) String() string {
+	return c.Node.Addr
 }
 
 func (c *rpcclient) rpcGet(method string, params []interface{}) ([]byte, error) {

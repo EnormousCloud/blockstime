@@ -16,6 +16,8 @@ type Network struct {
 	Nodes []engines.NodeRPC `json:"nodes" yaml:"nodes"`
 	// In case of local file storage - name of the local file
 	LocalPath string `json:"localpath" yaml:"localpath"`
+	// Whether this network is disabled for indexing
+	Disabled bool
 }
 
 func (n *Network) Validate() error {

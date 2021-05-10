@@ -49,9 +49,6 @@ func New(network *config.Network) (*indexer, error) {
 	blocks, err := timeslice.Load(network.LocalPath)
 	if err != nil {
 		log.Println("[WARN]", err.Error())
-		isSyncing, err := res.RpcClient.IsSyncing()
-		log.Println("[STATUS] syncing:", isSyncing, err)
-
 		maxBlockHeight, err := res.RpcClient.GetHeadBlockNumber()
 		if err != nil {
 			return nil, err
@@ -99,14 +96,7 @@ func (in *indexer) Run() error {
 	if total == 0 {
 		return errors.New("network error - no blocks")
 	}
-
-	if val, err := in.RpcClient.IsSyncing(); val {
-		return errors.New("network error - is syncing")
-	} else if err != nil {
-		return err
-	}
 	log.Printf("[index] Total %v blocks (synced %5.2f%%)\n", total, in.getSyncPct())
-
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt)
 

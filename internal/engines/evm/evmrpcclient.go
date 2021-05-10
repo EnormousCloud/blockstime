@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"strings"
+	"time"
 )
 
 type rpcclient struct {
@@ -19,8 +22,8 @@ func NewClient(node *engines.NodeRPC) (engines.INetworkEngine, error) {
 	res := &rpcclient{
 		Node: node,
 	}
-	if isSyncing, _ := res.IsSyncing(); isSyncing {
-		return nil, fmt.Errorf("Node %v is syncing", node.String())
+	if err := res.WaitForSync(); err != nil {
+		return nil, err
 	}
 	if lastBlock, err := res.GetHeadBlockNumber(); err != nil {
 		return nil, err
@@ -28,6 +31,22 @@ func NewClient(node *engines.NodeRPC) (engines.INetworkEngine, error) {
 		res.MaxBlock = lastBlock
 	}
 	return res, nil
+}
+
+func (in *rpcclient) WaitForSync() error {
+	for {
+		val, err := in.IsSyncing()
+		if !val {
+			log.Println("[wait] Node is not syncing")
+			return nil
+		}
+		if err != nil {
+			log.Printf("[wait] %v\n", err)
+			return err
+		}
+		log.Println("[wait] Node is syncing. Waiting")
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func (c *rpcclient) String() string {
@@ -54,7 +73,14 @@ func (c *rpcclient) rpcGet(method string, params []interface{}) ([]byte, error) 
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if strings.Contains(string(body), "401 Authorization Required") {
+		return nil, fmt.Errorf("[rpc] authorization required for %v", c.Node)
+	}
+	return body, nil
 }
 
 func (c *rpcclient) GetHeadBlockNumber() (int64, error) {
@@ -78,7 +104,7 @@ func (c *rpcclient) IsSyncing() (bool, error) {
 	if err := json.Unmarshal([]byte(body), &response); err != nil {
 		// example result: {"currentBlock":"0x4724d0","highestBlock":"0x48976f","knownStates":"0x0","pulledStates":"0x0","startingBlock":"0x451f50"}
 		// fmt.Println("body:", string(body))
-		return true, err
+		return true, nil
 	}
 	return response.Value(), nil
 }

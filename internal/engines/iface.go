@@ -14,6 +14,10 @@ type NodeRPC struct {
 	HttpPassword string `json:"password" yaml:"password"`
 }
 
+func (s *NodeRPC) String() string {
+	return s.Addr
+}
+
 func NewTestNode() (*NodeRPC, error) {
 	addr := os.Getenv("HTTP_ADDR")
 	username := os.Getenv("HTTP_USERNAME")

@@ -4,7 +4,6 @@ import (
 	"blockstime/internal/engines"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +20,7 @@ func NewClient(node *engines.NodeRPC) (engines.INetworkEngine, error) {
 		Node: node,
 	}
 	if isSyncing, _ := res.IsSyncing(); isSyncing {
-		return nil, errors.New("Node is syncing")
+		return nil, fmt.Errorf("Node %v is syncing", node.String())
 	}
 	if lastBlock, err := res.GetHeadBlockNumber(); err != nil {
 		return nil, err
@@ -77,7 +76,9 @@ func (c *rpcclient) IsSyncing() (bool, error) {
 	}
 	var response rpcresponsebool
 	if err := json.Unmarshal([]byte(body), &response); err != nil {
-		return false, err
+		// example result: {"currentBlock":"0x4724d0","highestBlock":"0x48976f","knownStates":"0x0","pulledStates":"0x0","startingBlock":"0x451f50"}
+		// fmt.Println("body:", string(body))
+		return true, err
 	}
 	return response.Value(), nil
 }

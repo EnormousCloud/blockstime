@@ -17,7 +17,7 @@ type Network struct {
 	// In case of local file storage - name of the local file
 	LocalPath string `json:"localpath" yaml:"localpath"`
 	// Whether this network is disabled for indexing
-	Disabled bool
+	Disabled bool `json:"disabled" yaml:"disabled"`
 }
 
 func (n *Network) Validate() error {

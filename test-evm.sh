@@ -10,7 +10,7 @@ reindex() {
     terraform apply -auto-approve
     # wait and reindex
     cd $SCRIPT_DIR/bin/blockstime-server \
-        -c $SCRIPT_DIR/config.yml -wait -index eth.$network
+        -c $SCRIPT_DIR/config.yml -i eth.$network
     # bring down ETH
     terraform destroy -auto-approve \
         -target module.httpproxy.docker_container.http \

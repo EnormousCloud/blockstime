@@ -46,16 +46,18 @@ func New(network *config.Network) (*indexer, error) {
 	}
 	res.RpcClient = rpcClient
 
+	maxBlockHeight, err := res.RpcClient.GetHeadBlockNumber()
+	if err != nil {
+		return nil, err
+	}
+	res.Blocks = make([]int64, maxBlockHeight)
 	blocks, err := timeslice.Load(network.LocalPath)
 	if err != nil {
-		log.Println("[WARN]", err.Error())
-		maxBlockHeight, err := res.RpcClient.GetHeadBlockNumber()
-		if err != nil {
-			return nil, err
-		}
-		res.Blocks = make([]int64, maxBlockHeight)
+		log.Println("[warn]", err.Error())
 	} else {
-		res.Blocks = blocks
+		for bi, bv := range blocks {
+			res.Blocks[bi] = bv
+		}
 	}
 	return res, nil
 }
@@ -81,22 +83,26 @@ func (in *indexer) ReadBlock(index int64, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (in *indexer) getSyncPct() float64 {
+func (in *indexer) getSyncPct() (int, float64) {
 	missing := 0
 	for index, v := range in.Blocks {
 		if v == 0 && index > 0 {
 			missing++
 		}
 	}
-	return 100.0 - 100.0*float64(missing)/float64(len(in.Blocks))
+	return missing, 100.0 - 100.0*float64(missing)/float64(len(in.Blocks))
+}
+
+func (in *indexer) Stat() {
+	total := len(in.Blocks)
+	if total > 0 {
+		missing, pct := in.getSyncPct()
+		log.Printf("[index] Total %v blocks (synced %5.2f%%, missing %d)\n", total, pct, missing)
+	}
 }
 
 func (in *indexer) Run() error {
-	total := len(in.Blocks)
-	if total == 0 {
-		return errors.New("network error - no blocks")
-	}
-	log.Printf("[index] Total %v blocks (synced %5.2f%%)\n", total, in.getSyncPct())
+	in.Stat()
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt)
 
@@ -112,6 +118,7 @@ func (in *indexer) Run() error {
 			}
 		}
 	}()
+
 	go func() {
 		// flush every minute
 		seconds := int64(15)
@@ -129,16 +136,22 @@ func (in *indexer) Run() error {
 
 			speed := math.Round(float64(current) / float64(seconds))
 			if err := in.Save(); err != nil {
-				log.Println("[save]", err)
+				log.Fatal("[save] ", err)
 			} else {
 				if currentErr > 0 {
 					log.Println("[warn]", currentErr, "errors, blocks skipped")
 				}
+				missing, pct := in.getSyncPct()
 				log.Println("[flush]", current, "blocks", speed, "/s",
-					fmt.Sprintf("(synced %5.2f%%)", in.getSyncPct()),
+					fmt.Sprintf("(synced %5.2f%%, missing %d)", pct, missing),
 					" took ", time.Since(start))
+				if missing == 0 {
+					log.Println("[saver] done. stopping")
+					os.Exit(0)
+				}
 			}
 		}
+
 	}()
 	// channel writer - task generator
 	go func() {
@@ -148,7 +161,8 @@ func (in *indexer) Run() error {
 				ch <- int64(index)
 			}
 		}
-		fmt.Println("channel writer done")
+		log.Println("[index] tasks were distributed. cooling down.")
+		time.Sleep(15 * time.Second)
 		close(ch) // no more values to be sent to the channel
 	}()
 

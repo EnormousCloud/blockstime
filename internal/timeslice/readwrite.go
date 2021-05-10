@@ -36,6 +36,7 @@ func Save(buf []int64, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	return binary.Write(file, binary.LittleEndian, buf)
+	err = binary.Write(file, binary.LittleEndian, buf)
+	file.Close()
+	return err
 }

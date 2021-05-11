@@ -3,10 +3,12 @@ package main
 import (
 	"blockstime/internal/config"
 	"blockstime/internal/indexer"
+	"blockstime/internal/server"
 
 	"log"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	cli "github.com/jawher/mow.cli"
 
 	"github.com/kelseyhightower/envconfig"
@@ -27,8 +29,18 @@ var (
 		Desc:  "network from config.yml to be indexed (HTTP server will not start)",
 		Value: "",
 	})
+	netListen = app.String(cli.StringOpt{
+		Name:  "listen",
+		Desc:  "TCP address to be listened",
+		Value: "0.0.0.0:8080",
+	})
 )
 
+// @title Blockstime API
+// @version 1.0
+// @description Microservice to seamlessly convert time of blocks into Unix timestamps
+// @host localhost:8080
+// @BasePath /api
 func main() {
 	app.Action = startApp
 	app.Run(os.Args)
@@ -64,7 +76,19 @@ func startApp() {
 		log.Fatalf("Failed to index %v - network not found in configuration",
 			*networkToIndex)
 	}
-	// TODO: start a web server otherwise
+	// start a web server otherwise
+	r := gin.Default()
+	c := server.NewController()
+	apiV1 := r.Group("/api")
+	{
+		apiV1.GET("ping", c.Ping)
+		apiV1.GET("blocks", c.GetBlocksFromPeriods)
+		apiV1.GET("periods", c.GetPeriodFromBlocks)
+		apiV1.GET("stats/daily", c.GetStatsDaily)
+		apiV1.GET("stats/yearly", c.GetStatsYearly)
+	}
+	log.Printf("Starting server %v\n", *netListen)
+	r.Run(*netListen) // listen and serve on
 }
 
 func processError(err error) {

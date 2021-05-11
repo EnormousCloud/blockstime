@@ -1,17 +1,26 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Controller struct {
+type IService interface {
+	BlocksFromPeriods(context.Context, TimePeriod) (*BlocksPeriod, error)
+	PeriodFromBlocks(context.Context, BlocksPeriod) (*TimePeriod, error)
+	StatsDaily(ctx context.Context, network string) (*BlockStatsResponse, error)
+	StatsYearly(ctx context.Context, network string) (*BlockStatsResponse, error)
 }
 
-func NewController() *Controller {
-	return &Controller{}
+type Controller struct {
+	svc IService
+}
+
+func NewController(svc IService) *Controller {
+	return &Controller{svc: svc}
 }
 
 // Ping godoc
@@ -43,12 +52,18 @@ func (c *Controller) GetBlocksFromPeriods(ctx *gin.Context) {
 	var input TimePeriod
 	if err := ctx.BindQuery(&input); err != nil {
 		ctx.JSON(400, map[string]string{"error": err.Error()})
+	} else if len(input.Network) == 0 {
+		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
 	} else if !input.IsValid() {
 		ctx.JSON(400, map[string]string{
 			"error": "either start or end is expected",
 		})
 	}
-	ctx.JSON(501, "not implemented")
+	res, err := c.svc.BlocksFromPeriods(ctx, input)
+	if err != nil {
+		ctx.JSON(500, map[string]string{"error": err.Error()})
+	}
+	ctx.JSON(200, res)
 }
 
 // @Summary periods
@@ -65,12 +80,18 @@ func (c *Controller) GetPeriodFromBlocks(ctx *gin.Context) {
 	var input BlocksPeriod
 	if err := ctx.BindQuery(&input); err != nil {
 		ctx.JSON(400, map[string]string{"error": err.Error()})
+	} else if len(input.Network) == 0 {
+		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
 	} else if !input.IsValid() {
 		ctx.JSON(400, map[string]string{
 			"error": "either block_start or block_end is expected",
 		})
 	}
-	ctx.JSON(501, "not implemented")
+	res, err := c.svc.PeriodFromBlocks(ctx, input)
+	if err != nil {
+		ctx.JSON(500, map[string]string{"error": err.Error()})
+	}
+	ctx.JSON(200, res)
 }
 
 // @Summary stats daily
@@ -84,7 +105,16 @@ func (c *Controller) GetPeriodFromBlocks(ctx *gin.Context) {
 // @Failure default {object} httputil.DefaultError
 // @Router /stats/daily [get]
 func (c *Controller) GetStatsDaily(ctx *gin.Context) {
-	ctx.JSON(501, "not implemented")
+	network := ctx.Request.URL.Query().Get("network")
+	if len(network) == 0 {
+		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	}
+
+	res, err := c.svc.StatsDaily(ctx, network)
+	if err != nil {
+		ctx.JSON(500, map[string]string{"error": err.Error()})
+	}
+	ctx.JSON(200, res)
 }
 
 // @Summary stats yearly
@@ -98,5 +128,14 @@ func (c *Controller) GetStatsDaily(ctx *gin.Context) {
 // @Failure default {object} httputil.DefaultError
 // @Router /stats/yearly [get]
 func (c *Controller) GetStatsYearly(ctx *gin.Context) {
-	ctx.JSON(501, "not implemented")
+	network := ctx.Request.URL.Query().Get("network")
+	if len(network) == 0 {
+		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	}
+
+	res, err := c.svc.StatsYearly(ctx, network)
+	if err != nil {
+		ctx.JSON(500, map[string]string{"error": err.Error()})
+	}
+	ctx.JSON(200, res)
 }

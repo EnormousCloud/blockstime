@@ -8,8 +8,9 @@ type PingResponse struct {
 }
 
 type TimePeriod struct {
-	Start *int64 `json:"start,omitempty"`
-	End   *int64 `json:"end,omitempty"`
+	Network string `json:"network"`
+	Start   *int64 `json:"start,omitempty"`
+	End     *int64 `json:"end,omitempty"`
 }
 
 func (p TimePeriod) IsValid() bool {
@@ -18,6 +19,7 @@ func (p TimePeriod) IsValid() bool {
 }
 
 type BlocksPeriod struct {
+	Network    string `json:"network"`
 	BlockStart *int64 `json:"block_start,omitempty"`
 	BlockEnd   *int64 `json:"block_end,omitempty"`
 }
@@ -28,5 +30,6 @@ func (p BlocksPeriod) IsValid() bool {
 }
 
 type BlockStatsResponse struct {
-	Stats map[string]int64 `json:"stats"`
+	Network string           `json:"network"`
+	Stats   map[string]int64 `json:"stats"`
 }

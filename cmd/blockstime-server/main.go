@@ -78,7 +78,8 @@ func startApp() {
 	}
 	// start a web server otherwise
 	r := gin.Default()
-	c := server.NewController()
+	svc := server.NewService(cfg)
+	c := server.NewController(svc)
 	apiV1 := r.Group("/api")
 	{
 		apiV1.GET("ping", c.Ping)

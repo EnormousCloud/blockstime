@@ -8,9 +8,9 @@ type PingResponse struct {
 }
 
 type TimePeriod struct {
-	Network string `json:"network"`
-	Start   *int64 `json:"start,omitempty"`
-	End     *int64 `json:"end,omitempty"`
+	Network string     `json:"network"`
+	Start   *time.Time `json:"start,omitempty"`
+	End     *time.Time `json:"end,omitempty"`
 }
 
 func (p TimePeriod) IsValid() bool {

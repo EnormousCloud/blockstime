@@ -9,6 +9,7 @@ import (
 )
 
 type IService interface {
+	HasNetwork(network string) bool
 	BlocksFromPeriods(context.Context, TimePeriod) (*BlocksPeriod, error)
 	PeriodFromBlocks(context.Context, BlocksPeriod) (*TimePeriod, error)
 	StatsDaily(ctx context.Context, network string) (*BlockStatsResponse, error)
@@ -54,6 +55,8 @@ func (c *Controller) GetBlocksFromPeriods(ctx *gin.Context) {
 		ctx.JSON(400, map[string]string{"error": err.Error()})
 	} else if len(input.Network) == 0 {
 		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	} else if !c.svc.HasNetwork(input.Network) {
+		ctx.JSON(404, map[string]string{"error": "network not found"})
 	} else if !input.IsValid() {
 		ctx.JSON(400, map[string]string{
 			"error": "either start or end is expected",
@@ -82,6 +85,8 @@ func (c *Controller) GetPeriodFromBlocks(ctx *gin.Context) {
 		ctx.JSON(400, map[string]string{"error": err.Error()})
 	} else if len(input.Network) == 0 {
 		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	} else if !c.svc.HasNetwork(input.Network) {
+		ctx.JSON(404, map[string]string{"error": "network not found"})
 	} else if !input.IsValid() {
 		ctx.JSON(400, map[string]string{
 			"error": "either block_start or block_end is expected",
@@ -108,6 +113,8 @@ func (c *Controller) GetStatsDaily(ctx *gin.Context) {
 	network := ctx.Request.URL.Query().Get("network")
 	if len(network) == 0 {
 		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	} else if !c.svc.HasNetwork(network) {
+		ctx.JSON(404, map[string]string{"error": "network not found"})
 	}
 
 	res, err := c.svc.StatsDaily(ctx, network)
@@ -131,6 +138,8 @@ func (c *Controller) GetStatsYearly(ctx *gin.Context) {
 	network := ctx.Request.URL.Query().Get("network")
 	if len(network) == 0 {
 		ctx.JSON(400, map[string]string{"error": "missing network parameter"})
+	} else if !c.svc.HasNetwork(network) {
+		ctx.JSON(404, map[string]string{"error": "network not found"})
 	}
 
 	res, err := c.svc.StatsYearly(ctx, network)

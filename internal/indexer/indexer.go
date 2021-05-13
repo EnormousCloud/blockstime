@@ -50,7 +50,7 @@ func New(network *config.Network) (*indexer, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.Blocks = make([]int64, maxBlockHeight)
+	res.Blocks = make([]int64, maxBlockHeight+1)
 	blocks, err := timeslice.Load(network.LocalPath)
 	if err != nil {
 		log.Println("[warn]", err.Error())

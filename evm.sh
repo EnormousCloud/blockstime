@@ -36,15 +36,16 @@ shutdown() {
 [[ "$1" == "mainnet" ]] && { reindex $1; exit 0; }
 [[ "$1" == "rinkeby" ]] && { reindex $1; exit 0; }
 [[ "$1" == "goerli" ]] && { reindex $1; exit 0; }
+[[ "$1" == "shutdown" ]] && {
+    shift
+    shutdown "mainnet"
+    shutdown "rinkeby"
+    shutdown "goerli"
+}
 [[ "$1" == "all" ]] && {
     reindex "mainnet"
     reindex "rinkeby"
     reindex "goerli"
-}
-[[ "$1" == "shutdown" ]] && {
-    shutdown "mainnet"
-    shutdown "rinkeby"
-    shutdown "goerli"
 }
 
 [[ "$1" == "test" ]] && {
